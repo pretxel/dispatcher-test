@@ -53,6 +53,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@flovi/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@supabase/supabase-js':
         specifier: ^2.103.0
         version: 2.103.0
