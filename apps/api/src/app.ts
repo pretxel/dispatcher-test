@@ -2,6 +2,7 @@ import Fastify, { FastifyInstance } from 'fastify'
 import cors from '@fastify/cors'
 import prismaPlugin from './plugins/prisma'
 import authPlugin from './plugins/auth'
+import { relocationRoutes } from './routes/relocations'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' })
@@ -13,6 +14,7 @@ export function buildApp(): FastifyInstance {
 
   app.register(prismaPlugin)
   app.register(authPlugin)
+  app.register(relocationRoutes)
 
   app.setErrorHandler((error, _request, reply) => {
     const statusCode = error.statusCode ?? 500
