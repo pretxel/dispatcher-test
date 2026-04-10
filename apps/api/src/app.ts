@@ -8,7 +8,7 @@ export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' })
 
   app.register(cors, {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? undefined : '*'),
     methods: ['GET', 'POST', 'PUT'],
   })
 

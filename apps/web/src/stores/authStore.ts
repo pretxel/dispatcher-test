@@ -5,12 +5,14 @@ import { supabase } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
+  const initialized = ref(false)
   const user = computed<User | null>(() => session.value?.user ?? null)
   const isAuthenticated = computed(() => !!session.value)
 
   async function init() {
     const { data } = await supabase.auth.getSession()
     session.value = data.session
+    initialized.value = true
 
     supabase.auth.onAuthStateChange((_event, newSession) => {
       session.value = newSession
@@ -29,5 +31,5 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = null
   }
 
-  return { session, user, isAuthenticated, init, signInWithGoogle, signOut }
+  return { session, initialized, user, isAuthenticated, init, signInWithGoogle, signOut }
 })

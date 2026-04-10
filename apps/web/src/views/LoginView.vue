@@ -57,6 +57,11 @@ const loading = ref(false)
 
 async function handleSignIn() {
   loading.value = true
-  await authStore.signInWithGoogle()
+  try {
+    await authStore.signInWithGoogle()
+  } finally {
+    // Redirect away from page on success, reset on failure
+    loading.value = false
+  }
 }
 </script>

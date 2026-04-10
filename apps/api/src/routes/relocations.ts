@@ -73,7 +73,7 @@ export async function relocationRoutes(app: FastifyInstance) {
       })
     }
 
-    const existing = await app.prisma.relocation.findUnique({ where: { id } })
+    const existing = await app.prisma.relocation.findUnique({ where: { id, userId: request.userId } })
     if (!existing) {
       return reply.code(404).send({
         statusCode: 404,

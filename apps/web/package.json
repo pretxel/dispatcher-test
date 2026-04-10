@@ -20,7 +20,6 @@
   "dependencies": {
     "@flovi/types": "workspace:*",
     "@supabase/supabase-js": "^2.103.0",
-    "@vee-validate/zod": "^4.15.1",
     "@vueuse/core": "^14.2.1",
     "axios": "^1.15.0",
     "class-variance-authority": "^0.7.1",
@@ -29,7 +28,6 @@
     "pinia": "^3.0.4",
     "reka-ui": "^2.9.5",
     "tailwind-merge": "^3.5.0",
-    "vee-validate": "^4.15.1",
     "vue": "^3.5.32",
     "vue-router": "^4.6.4",
     "vue-sonner": "^2.0.9",

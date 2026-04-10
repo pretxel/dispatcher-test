@@ -143,6 +143,22 @@ describe('PUT /api/v1/relocations/:id', () => {
     expect(res.statusCode).toBe(400)
   })
 
+  it('returns 400 when relocation is CANCELLED', async () => {
+    const app = buildApp()
+    const { PrismaClient } = await import('@prisma/client')
+    const prisma = new (PrismaClient as any)()
+    prisma.relocation.findUnique.mockResolvedValue({ ...MOCK_RELOCATION, status: 'CANCELLED' })
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/relocations/clx1234',
+      headers: AUTH_HEADER,
+      payload: { origin: 'Seville' },
+    })
+
+    expect(res.statusCode).toBe(400)
+  })
+
   it('returns 404 when relocation not found', async () => {
     const app = buildApp()
     const { PrismaClient } = await import('@prisma/client')

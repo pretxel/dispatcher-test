@@ -23,8 +23,13 @@ export const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+
+  // Wait for Supabase session to be restored (handles OAuth redirect race)
+  if (!authStore.initialized) {
+    await authStore.init()
+  }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login' }

@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -51,6 +52,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const user = computed(() => authStore.user)
 
 const initials = computed(() => {
@@ -61,5 +63,6 @@ const initials = computed(() => {
 
 async function handleSignOut() {
   await authStore.signOut()
+  router.push({ name: 'login' })
 }
 </script>
