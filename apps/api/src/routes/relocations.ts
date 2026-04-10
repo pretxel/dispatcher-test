@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { TERMINAL_STATUSES } from '@flovi/types'
+import { TERMINAL_STATUSES, ALL_STATUSES } from '@flovi/types'
 
 const createSchema = z.object({
   origin: z.string().min(1),
@@ -14,7 +14,7 @@ const updateSchema = z.object({
   destination: z.string().min(1).optional(),
   date: z.string().datetime().optional(),
   notes: z.string().max(500).optional(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
+  status: z.enum(ALL_STATUSES as [string, ...string[]]).optional(),
 })
 
 export async function relocationRoutes(app: FastifyInstance) {
