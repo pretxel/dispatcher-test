@@ -80,6 +80,12 @@ The fix adds `datasource.url: process.env.DIRECT_URL ?? process.env.DATABASE_URL
 
 ---
 
+## 2026-04-12 — API server not loading `.env` after ESM migration
+**Decision:** Added `import 'dotenv/config'` as the first import in `src/server.ts`  
+**Rationale:** After the Prisma 7 migration added `"type": "module"` to `apps/api`, running `dev:api` raised `"supabaseUrl is required."` — `SUPABASE_URL` was `undefined` at runtime despite being present in `.env`. The root cause: `tsx` does not auto-load `.env` files, so `process.env` never received the variables before `authPlugin` called `createClient(process.env.SUPABASE_URL!, ...)`. Using `import 'dotenv/config'` as the first statement in `server.ts` is the ESM-safe side-effect import that loads `.env` before any other module initialises. `dotenv` was already a dev dependency (added for `prisma.config.ts`), so no new package was needed.
+
+---
+
 ## 2026-04-12 — `@flovi/types` missing `"type": "module"` after Prisma 7 ESM migration
 **Decision:** Added `"type": "module"` to `packages/types/package.json`  
 **Rationale:** Adding `"type": "module"` to `apps/api` (required by Prisma 7) caused `dev:api` to fail with `SyntaxError: The requested module '@flovi/types' does not provide an export`. The types package `tsconfig.json` already compiled to ESM (`export const …`) but without `"type": "module"` in its `package.json`, Node.js treated the `.js` output as CommonJS. The ESM API tried to import it as ESM and found no named exports. Adding `"type": "module"` to `packages/types` aligns its runtime module format with the compiled output. No code changes required — the existing `dist/index.js` is already valid ESM. Web build and API tests continue to pass after the fix.
