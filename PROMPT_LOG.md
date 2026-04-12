@@ -80,6 +80,12 @@ The fix adds `datasource.url: process.env.DIRECT_URL ?? process.env.DATABASE_URL
 
 ---
 
+## 2026-04-12 — `@flovi/types` missing `"type": "module"` after Prisma 7 ESM migration
+**Decision:** Added `"type": "module"` to `packages/types/package.json`  
+**Rationale:** Adding `"type": "module"` to `apps/api` (required by Prisma 7) caused `dev:api` to fail with `SyntaxError: The requested module '@flovi/types' does not provide an export`. The types package `tsconfig.json` already compiled to ESM (`export const …`) but without `"type": "module"` in its `package.json`, Node.js treated the `.js` output as CommonJS. The ESM API tried to import it as ESM and found no named exports. Adding `"type": "module"` to `packages/types` aligns its runtime module format with the compiled output. No code changes required — the existing `dist/index.js` is already valid ESM. Web build and API tests continue to pass after the fix.
+
+---
+
 ## 2026-04-12 — Full-stack validation: Prisma 7 stricter enum types in update input
 **Decision:** Import `RelocationStatus` from the generated Prisma client and cast the `status` field explicitly in `relocation.update()`  
 **Rationale:** Running `tsc` (API build) after the Prisma 7 migration surfaced a type error in `src/routes/relocations.ts`: Prisma 7 generates a stricter `RelocationUpdateInput` type where `status` must be `RelocationStatus | EnumRelocationStatusFieldUpdateOperationsInput | undefined` — a plain `string` is rejected. The fix destructures `status` from the validated payload and re-spreads it as `status as RelocationStatus`, which is safe because the Zod `updateSchema` already validates the value against `ALL_STATUSES`. The `prisma.config.ts` was also updated by the developer to load env vars via `dotenv` (`.env.local` → `.env` cascade) rather than the raw `process.env` fallback chain, aligning with Next.js/Vite local development conventions. After the fix: API TypeScript build clean, 8/8 tests pass, web production build clean (2 398 modules, no warnings).
