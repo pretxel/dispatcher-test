@@ -6,3 +6,5 @@ dist/
 *.tsbuildinfo
 .qodo
 .vscode/
+.mcp.json
+.claude
