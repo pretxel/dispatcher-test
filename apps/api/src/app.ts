@@ -12,6 +12,10 @@ export function buildApp(): FastifyInstance {
     methods: ['GET', 'POST', 'PUT'],
   })
 
+  // /health must be registered before authPlugin so the global preHandler hook
+  // added by fastify-plugin does not intercept it.
+  app.get('/health', async () => ({ status: 'ok' }))
+
   app.register(prismaPlugin)
   app.register(authPlugin)
   app.register(relocationRoutes)
@@ -24,8 +28,6 @@ export function buildApp(): FastifyInstance {
       message: error.message,
     })
   })
-
-  app.get('/health', async () => ({ status: 'ok' }))
 
   return app
 }

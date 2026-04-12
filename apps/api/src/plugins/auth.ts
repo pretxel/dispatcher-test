@@ -17,6 +17,8 @@ const authPlugin: FastifyPluginAsync = fp(async (app) => {
   app.decorateRequest('userId', '')
 
   app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (request.url === '/health') return
+
     const authHeader = request.headers.authorization
     if (!authHeader?.startsWith('Bearer ')) {
       return reply.code(401).send({ statusCode: 401, error: 'Unauthorized', message: 'Missing token' })
