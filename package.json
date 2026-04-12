@@ -2,6 +2,7 @@
   "name": "flovi-dispatcher",
   "private": true,
   "scripts": {
+    "postinstall": "pnpm --filter @flovi/types build",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "build:web": "pnpm --filter web build",
