@@ -92,6 +92,20 @@ The fix adds `datasource.url: process.env.DIRECT_URL ?? process.env.DATABASE_URL
 
 ---
 
+## 2026-04-12 — Happy-path validation via computer use: three config bugs found and fixed
+**Decision:** Corrected `VITE_API_URL`, `CORS_ORIGIN`, and the `/health` auth bypass in a single validation session  
+**Rationale:** Running computer-use against the live dev environment (`localhost:5173`) exposed three bugs that had not been caught by unit tests (which mock the API):
+
+1. **`VITE_API_URL=http://localhost:5173/` (apps/web/.env)** — the web app was calling its own Vite dev server instead of the API on port 3001. Vite serves `index.html` for unknown routes; axios received an HTML string, `relocations.value` was set to that string, and `string.length` rendered as "410 orders total" in the dashboard header with an empty table (Vue iterated over HTML characters, each without the expected relocation properties). Fixed to `http://localhost:3001`.
+
+2. **`CORS_ORIGIN=http://localhost:3001` (apps/api/.env)** — the API's CORS allowed only its own port. Requests from the web app on port 5173 were blocked by the browser, producing a generic "Failed to load relocations" error banner. Fixed to `http://localhost:5173`.
+
+3. **`/health` returned 401** — `fastify-plugin` (`fp`) intentionally removes plugin encapsulation, causing `authPlugin`'s `preHandler` hook to leak into the parent scope and intercept all routes including `/health`. Two-part fix: (a) move `app.get('/health')` before `app.register(authPlugin)` as documentation of intent; (b) add `if (request.url === '/health') return` inside the hook as the actual runtime guard, since registration order alone cannot override `fp` scope.
+
+All three fixes committed to `main`. A Playwright E2E plan was created at `docs/superpowers/plans/2026-04-12-e2e-and-devex-hardening.md` to automate happy-path regression testing so these classes of issues are caught before manual validation.
+
+---
+
 ## 2026-04-12 — Full-stack validation: Prisma 7 stricter enum types in update input
 **Decision:** Import `RelocationStatus` from the generated Prisma client and cast the `status` field explicitly in `relocation.update()`  
 **Rationale:** Running `tsc` (API build) after the Prisma 7 migration surfaced a type error in `src/routes/relocations.ts`: Prisma 7 generates a stricter `RelocationUpdateInput` type where `status` must be `RelocationStatus | EnumRelocationStatusFieldUpdateOperationsInput | undefined` — a plain `string` is rejected. The fix destructures `status` from the validated payload and re-spreads it as `status as RelocationStatus`, which is safe because the Zod `updateSchema` already validates the value against `ALL_STATUSES`. The `prisma.config.ts` was also updated by the developer to load env vars via `dotenv` (`.env.local` → `.env` cascade) rather than the raw `process.env` fallback chain, aligning with Next.js/Vite local development conventions. After the fix: API TypeScript build clean, 8/8 tests pass, web production build clean (2 398 modules, no warnings).
