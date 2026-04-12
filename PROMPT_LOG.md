@@ -106,6 +106,12 @@ All three fixes committed to `main`. A Playwright E2E plan was created at `docs/
 
 ---
 
+## 2026-04-12 — Vercel build failure: `@flovi/types` not found (TS2307)
+**Decision:** Prepend `pnpm --filter @flovi/types build &&` to the `build` script in both `apps/web` and `apps/api`  
+**Rationale:** Vercel clones a fresh repo — `packages/types/dist/` is gitignored and therefore absent. Both apps resolve `@flovi/types` via the pnpm workspace symlink, but `packages/types/package.json` points `main` and `types` at `./dist/index.js` / `./dist/index.d.ts`. TypeScript cannot find the declarations at build time, producing `TS2307: Cannot find module '@flovi/types'`. Prepending the filter build to each app's build script ensures the types package compiles first, creating `dist/` before `tsc` runs. No changes to `packages/types` itself were needed — its existing `"build": "tsc"` script is sufficient.
+
+---
+
 ## 2026-04-12 — Full-stack validation: Prisma 7 stricter enum types in update input
 **Decision:** Import `RelocationStatus` from the generated Prisma client and cast the `status` field explicitly in `relocation.update()`  
 **Rationale:** Running `tsc` (API build) after the Prisma 7 migration surfaced a type error in `src/routes/relocations.ts`: Prisma 7 generates a stricter `RelocationUpdateInput` type where `status` must be `RelocationStatus | EnumRelocationStatusFieldUpdateOperationsInput | undefined` — a plain `string` is rejected. The fix destructures `status` from the validated payload and re-spreads it as `status as RelocationStatus`, which is safe because the Zod `updateSchema` already validates the value against `ALL_STATUSES`. The `prisma.config.ts` was also updated by the developer to load env vars via `dotenv` (`.env.local` → `.env` cascade) rather than the raw `process.env` fallback chain, aligning with Next.js/Vite local development conventions. After the fix: API TypeScript build clean, 8/8 tests pass, web production build clean (2 398 modules, no warnings).
