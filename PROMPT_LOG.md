@@ -127,6 +127,18 @@ Production `VITE_API_URL` = `https://vfmtrozkajbwaxdgdmys.supabase.co/functions/
 
 ---
 
+## 2026-04-13 — Edge Function refactor: decoupled handlers + removal of apps/api
+**Decision:** Refactored `supabase/functions/api/index.ts` into named handler functions and deleted the entire `apps/api` directory  
+**Rationale:** The original Edge Function was a single monolithic `Deno.serve` callback. Splitting it into `authenticate()`, `getRelocations()`, `createRelocation()`, `updateRelocation()`, `json()`, and `err()` makes each concern independently readable and testable. `apps/api` (Fastify, Prisma, Vercel infra, 25 files) was removed since the Supabase Edge Function is now the canonical backend — retaining it would cause confusion and maintenance drift. Root `package.json` was simplified: `dev:api`, `build:api`, `test:api` scripts removed; `prisma generate` dropped from `postinstall`. `CLAUDE.md` updated to reflect the new architecture.
+
+---
+
+## 2026-04-13 — GET /api/v1/relocations: default returns all, optional query param filters
+**Decision:** Removed the mandatory `userId` filter from `getRelocations`; added optional `?userId=` and `?status=` query params  
+**Rationale:** The original handler always scoped results to the authenticated user's `userId`. Dispatchers need to view all relocations across users. The service-role DB client already bypasses RLS, so dropping the hard `eq('userId', userId)` exposes all rows by default. Callers can narrow results with `?userId=<id>` (match a specific user) and/or `?status=<value>` (match a specific status). An invalid `status` value returns 400 with the full list of valid options. Write operations (POST, PUT) still scope to the authenticated user's `userId`.
+
+---
+
 ## 2026-04-12 — Full-stack validation: Prisma 7 stricter enum types in update input
 **Decision:** Import `RelocationStatus` from the generated Prisma client and cast the `status` field explicitly in `relocation.update()`  
 **Rationale:** Running `tsc` (API build) after the Prisma 7 migration surfaced a type error in `src/routes/relocations.ts`: Prisma 7 generates a stricter `RelocationUpdateInput` type where `status` must be `RelocationStatus | EnumRelocationStatusFieldUpdateOperationsInput | undefined` — a plain `string` is rejected. The fix destructures `status` from the validated payload and re-spreads it as `status as RelocationStatus`, which is safe because the Zod `updateSchema` already validates the value against `ALL_STATUSES`. The `prisma.config.ts` was also updated by the developer to load env vars via `dotenv` (`.env.local` → `.env` cascade) rather than the raw `process.env` fallback chain, aligning with Next.js/Vite local development conventions. After the fix: API TypeScript build clean, 8/8 tests pass, web production build clean (2 398 modules, no warnings).

@@ -60,12 +60,21 @@ async function authenticate(req: Request): Promise<AuthResult | Response> {
 
 // ── Route handlers ─────────────────────────────────────────────────────────────
 
-async function getRelocations(db: SupabaseClient, userId: string): Promise<Response> {
-  const { data, error } = await db
-    .from('Relocation')
-    .select('*')
-    .eq('userId', userId)
-    .order('createdAt', { ascending: false })
+async function getRelocations(req: Request, db: SupabaseClient): Promise<Response> {
+  const { searchParams } = new URL(req.url)
+  const filterUserId = searchParams.get('userId')
+  const filterStatus = searchParams.get('status')
+
+  if (filterStatus && !ALL_STATUSES.includes(filterStatus)) {
+    return err(400, `Invalid status. Must be one of: ${ALL_STATUSES.join(', ')}`)
+  }
+
+  let query = db.from('Relocation').select('*')
+
+  if (filterUserId) query = query.eq('userId', filterUserId)
+  if (filterStatus) query = query.eq('status', filterStatus)
+
+  const { data, error } = await query.order('createdAt', { ascending: false })
 
   if (error) return json({ error: error.message }, 500)
   return json(data)
@@ -179,7 +188,7 @@ Deno.serve(async (req: Request) => {
   const { userId, db } = auth
 
   if (req.method === 'GET' && pathname.endsWith('/v1/relocations')) {
-    return getRelocations(db, userId)
+    return getRelocations(req, db)
   }
 
   if (req.method === 'POST' && pathname.endsWith('/v1/relocations')) {
