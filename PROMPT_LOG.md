@@ -55,3 +55,16 @@ Chronological record of key decisions made during design and implementation.
 ## 2026-04-10 — Label Component
 **Decision:** `Label` installed separately via `npx shadcn-vue@latest add label`  
 **Rationale:** shadcn-vue 2.5.x init does not include Label in the default component set. Required by form fields; added explicitly.
+
+---
+
+## 2026-04-10 — Prisma 7 Upgrade
+**Decision:** Migrated `apps/api` from Prisma 5 to Prisma 7 with driver adapter pattern  
+**Rationale:** Prisma 7 is ESM-only and requires significant structural changes:
+- `"type": "module"` added to `apps/api/package.json`; `tsconfig.json` switched to `"module": "ESNext"` + `"moduleResolution": "bundler"`
+- Generator provider changed from `prisma-client-js` to `prisma-client` with explicit `output = "../src/generated/prisma"`
+- Connection strings (`url`, `directUrl`) removed from `schema.prisma` — Prisma 7 no longer supports them there; moved to `prisma.config.ts` under the `migrate.adapter` factory using `@prisma/adapter-pg`
+- Runtime `PrismaClient` instantiation in `src/plugins/prisma.ts` now passes a `PrismaPg` adapter constructed from `DATABASE_URL`
+- Import path in plugin and tests updated to `../generated/prisma/client.js` (Prisma 7 generates `client.ts` instead of an `index` barrel)
+- `pnpm-workspace.yaml` updated with `onlyBuiltDependencies` to allow `@prisma/engines` and `prisma` postinstall scripts
+- All 8 tests continue to pass after the migration

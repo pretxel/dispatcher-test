@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildApp } from '../src/app'
 
 // Mock Prisma and Supabase before importing app
-vi.mock('@prisma/client', () => {
+vi.mock('../src/generated/prisma/client.js', () => {
   const mockPrisma = {
     relocation: {
       create: vi.fn(),
@@ -27,6 +27,10 @@ vi.mock('@supabase/supabase-js', () => ({
   })),
 }))
 
+vi.mock('@prisma/adapter-pg', () => ({
+  PrismaPg: vi.fn(() => ({})),
+}))
+
 const MOCK_RELOCATION = {
   id: 'clx1234',
   origin: 'Madrid',
@@ -44,7 +48,7 @@ const AUTH_HEADER = { authorization: 'Bearer valid-token' }
 describe('POST /api/v1/relocations', () => {
   it('creates a relocation and returns 201', async () => {
     const app = buildApp()
-    const { PrismaClient } = await import('@prisma/client')
+    const { PrismaClient } = await import('../src/generated/prisma/client.js')
     const prisma = new (PrismaClient as any)()
     prisma.relocation.create.mockResolvedValue(MOCK_RELOCATION)
 
@@ -93,7 +97,7 @@ describe('POST /api/v1/relocations', () => {
 describe('GET /api/v1/relocations', () => {
   it('returns list of relocations', async () => {
     const app = buildApp()
-    const { PrismaClient } = await import('@prisma/client')
+    const { PrismaClient } = await import('../src/generated/prisma/client.js')
     const prisma = new (PrismaClient as any)()
     prisma.relocation.findMany.mockResolvedValue([MOCK_RELOCATION])
 
@@ -111,7 +115,7 @@ describe('GET /api/v1/relocations', () => {
 describe('PUT /api/v1/relocations/:id', () => {
   it('updates a relocation and returns 200', async () => {
     const app = buildApp()
-    const { PrismaClient } = await import('@prisma/client')
+    const { PrismaClient } = await import('../src/generated/prisma/client.js')
     const prisma = new (PrismaClient as any)()
     prisma.relocation.findUnique.mockResolvedValue(MOCK_RELOCATION)
     prisma.relocation.update.mockResolvedValue({ ...MOCK_RELOCATION, origin: 'Seville' })
@@ -129,7 +133,7 @@ describe('PUT /api/v1/relocations/:id', () => {
 
   it('returns 400 when relocation is COMPLETED', async () => {
     const app = buildApp()
-    const { PrismaClient } = await import('@prisma/client')
+    const { PrismaClient } = await import('../src/generated/prisma/client.js')
     const prisma = new (PrismaClient as any)()
     prisma.relocation.findUnique.mockResolvedValue({ ...MOCK_RELOCATION, status: 'COMPLETED' })
 
@@ -145,7 +149,7 @@ describe('PUT /api/v1/relocations/:id', () => {
 
   it('returns 400 when relocation is CANCELLED', async () => {
     const app = buildApp()
-    const { PrismaClient } = await import('@prisma/client')
+    const { PrismaClient } = await import('../src/generated/prisma/client.js')
     const prisma = new (PrismaClient as any)()
     prisma.relocation.findUnique.mockResolvedValue({ ...MOCK_RELOCATION, status: 'CANCELLED' })
 
@@ -161,7 +165,7 @@ describe('PUT /api/v1/relocations/:id', () => {
 
   it('returns 404 when relocation not found', async () => {
     const app = buildApp()
-    const { PrismaClient } = await import('@prisma/client')
+    const { PrismaClient } = await import('../src/generated/prisma/client.js')
     const prisma = new (PrismaClient as any)()
     prisma.relocation.findUnique.mockResolvedValue(null)
 
