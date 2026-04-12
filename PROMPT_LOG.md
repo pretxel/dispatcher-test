@@ -77,3 +77,9 @@ Chronological record of key decisions made during design and implementation.
 1. `migrate.adapter` — the `PrismaConfig` type has no `migrate` key (only `migrations` for path configuration). Adapters are not accepted in the config file at all; they belong exclusively in `new PrismaClient({ adapter })` at runtime.
 2. `earlyAccess: true` — not a valid `PrismaConfig` field; removed.  
 The fix adds `datasource.url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? ''` at the top level of `defineConfig`. `DIRECT_URL` (non-pooled, port 5432) is used for migrations; the fallback to `DATABASE_URL` handles single-connection setups. `process.env` is used directly instead of the `env()` helper because `env()` throws eagerly — which breaks `prisma generate` in environments where the variable is not set (CI, local without .env).
+
+---
+
+## 2026-04-12 — Full-stack validation: Prisma 7 stricter enum types in update input
+**Decision:** Import `RelocationStatus` from the generated Prisma client and cast the `status` field explicitly in `relocation.update()`  
+**Rationale:** Running `tsc` (API build) after the Prisma 7 migration surfaced a type error in `src/routes/relocations.ts`: Prisma 7 generates a stricter `RelocationUpdateInput` type where `status` must be `RelocationStatus | EnumRelocationStatusFieldUpdateOperationsInput | undefined` — a plain `string` is rejected. The fix destructures `status` from the validated payload and re-spreads it as `status as RelocationStatus`, which is safe because the Zod `updateSchema` already validates the value against `ALL_STATUSES`. The `prisma.config.ts` was also updated by the developer to load env vars via `dotenv` (`.env.local` → `.env` cascade) rather than the raw `process.env` fallback chain, aligning with Next.js/Vite local development conventions. After the fix: API TypeScript build clean, 8/8 tests pass, web production build clean (2 398 modules, no warnings).

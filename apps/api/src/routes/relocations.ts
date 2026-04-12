@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { TERMINAL_STATUSES, ALL_STATUSES } from '@flovi/types'
+import { RelocationStatus } from '../generated/prisma/client.js'
 
 const createSchema = z.object({
   origin: z.string().min(1),
@@ -90,12 +91,13 @@ export async function relocationRoutes(app: FastifyInstance) {
       })
     }
 
-    const { date, ...rest } = parsed.data
+    const { date, status, ...rest } = parsed.data
     const updated = await app.prisma.relocation.update({
       where: { id },
       data: {
         ...rest,
         ...(date ? { date: new Date(date) } : {}),
+        ...(status ? { status: status as RelocationStatus } : {}),
       },
     })
 
