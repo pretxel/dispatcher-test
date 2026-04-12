@@ -1,8 +1,8 @@
 import Fastify, { FastifyInstance } from 'fastify'
 import cors from '@fastify/cors'
-import prismaPlugin from './plugins/prisma'
-import authPlugin from './plugins/auth'
-import { relocationRoutes } from './routes/relocations'
+import prismaPlugin from './plugins/prisma.js'
+import authPlugin from './plugins/auth.js'
+import { relocationRoutes } from './routes/relocations.js'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' })
