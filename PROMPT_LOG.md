@@ -106,6 +106,21 @@ All three fixes committed to `main`. A Playwright E2E plan was created at `docs/
 
 ---
 
+## 2026-04-12 — API migrated to Supabase Edge Function
+**Decision:** Rewrote the API as a single Supabase Edge Function (`supabase/functions/api/index.ts`) replacing the Fastify + Vercel serverless deployment  
+**Rationale:** The Vercel serverless API had deep compatibility issues — `@vercel/node` with `"type": "module"` cannot use `ncc` bundling, so `@vercel/nft` traces imports that lack `.js` extensions, skipping entire `src/` trees. Supabase Edge Functions (Deno runtime) eliminate the Node.js/ESM bundling problem entirely and co-locate the API with the database.  
+Key design choices:
+- **No Prisma**: replaced with `@supabase/supabase-js` PostgREST client — the `Relocation` table already exists from the Prisma migration, so querying it directly via supabase-js is simpler than running the Prisma driver adapter in Deno.
+- **Service-role client for DB**: bypasses RLS and filters by `userId` manually (mirrors the existing Fastify implementation). Future improvement: enable RLS with `auth.uid()` policies and use the user's JWT for DB calls.
+- **`verify_jwt: false`**: the function implements its own auth via `supabase.auth.getUser(token)`, which also allows `/health` to bypass auth.
+- **`id` generation**: `crypto.randomUUID()` (Deno built-in) replaces Prisma's `cuid()` since supabase-js doesn't generate IDs client-side.
+- **`createdAt`** omitted from inserts — Postgres `DEFAULT CURRENT_TIMESTAMP` handles it. `updatedAt` is set manually on every write.
+- **CORS**: controlled via `CORS_ORIGIN` env var, falls back to `*`.
+- **Route matching**: `pathname.endsWith('/v1/relocations')` handles both local (`/functions/v1/api/v1/relocations`) and direct invocation paths without hardcoding the Supabase prefix.  
+Production `VITE_API_URL` = `https://vfmtrozkajbwaxdgdmys.supabase.co/functions/v1`. Local dev still uses Fastify on `http://localhost:3001`.
+
+---
+
 ## 2026-04-12 — Vercel build failure: `@flovi/types` not found (TS2307)
 **Decision:** Prepend `pnpm --filter @flovi/types build &&` to the `build` script in both `apps/web` and `apps/api`  
 **Rationale:** Vercel clones a fresh repo — `packages/types/dist/` is gitignored and therefore absent. Both apps resolve `@flovi/types` via the pnpm workspace symlink, but `packages/types/package.json` points `main` and `types` at `./dist/index.js` / `./dist/index.d.ts`. TypeScript cannot find the declarations at build time, producing `TS2307: Cannot find module '@flovi/types'`. Prepending the filter build to each app's build script ensures the types package compiles first, creating `dist/` before `tsc` runs. No changes to `packages/types` itself were needed — its existing `"build": "tsc"` script is sufficient.
