@@ -68,3 +68,12 @@ Chronological record of key decisions made during design and implementation.
 - Import path in plugin and tests updated to `../generated/prisma/client.js` (Prisma 7 generates `client.ts` instead of an `index` barrel)
 - `pnpm-workspace.yaml` updated with `onlyBuiltDependencies` to allow `@prisma/engines` and `prisma` postinstall scripts
 - All 8 tests continue to pass after the migration
+
+---
+
+## 2026-04-12 — Prisma 7 `prisma.config.ts` correction: datasource.url and adapter placement
+**Decision:** Removed the invalid `migrate.adapter` key from `prisma.config.ts`; added `datasource.url`; kept adapter only in `PrismaClient` constructor  
+**Rationale:** Running `prisma migrate dev` raised "Error: The datasource.url property is required in your Prisma config file". Investigation of `@prisma/config`'s `PrismaConfig` type revealed two errors in the initial `prisma.config.ts`:
+1. `migrate.adapter` — the `PrismaConfig` type has no `migrate` key (only `migrations` for path configuration). Adapters are not accepted in the config file at all; they belong exclusively in `new PrismaClient({ adapter })` at runtime.
+2. `earlyAccess: true` — not a valid `PrismaConfig` field; removed.  
+The fix adds `datasource.url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? ''` at the top level of `defineConfig`. `DIRECT_URL` (non-pooled, port 5432) is used for migrations; the fallback to `DATABASE_URL` handles single-connection setups. `process.env` is used directly instead of the `env()` helper because `env()` throws eagerly — which breaks `prisma generate` in environments where the variable is not set (CI, local without .env).

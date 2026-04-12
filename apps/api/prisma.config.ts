@@ -1,13 +1,12 @@
 import { defineConfig } from 'prisma/config'
-import { PrismaPg } from '@prisma/adapter-pg'
 
 export default defineConfig({
-  earlyAccess: true,
   schema: './prisma/schema.prisma',
-  migrate: {
-    adapter: () => {
-      const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? ''
-      return new PrismaPg({ connectionString })
-    },
+  datasource: {
+    // DIRECT_URL is required for `prisma migrate dev` (non-pooled connection).
+    // Falls back to DATABASE_URL if only one connection string is configured.
+    // When neither is set (e.g. CI running prisma generate) an empty string is
+    // passed; migrate commands will fail with a clear "missing env var" error.
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? '',
   },
 })
