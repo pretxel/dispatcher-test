@@ -127,6 +127,12 @@ Production `VITE_API_URL` = `https://vfmtrozkajbwaxdgdmys.supabase.co/functions/
 
 ---
 
+## 2026-04-13 — POST /api/v1/relocations/:id/confirm endpoint
+**Decision:** Added a dedicated confirm endpoint that sets status to `IN_PROGRESS`; no request body required  
+**Rationale:** Confirming a relocation is a distinct business action from a general-purpose PUT edit. A dedicated endpoint (`POST /:id/confirm`) makes the intent explicit and avoids callers needing to know the target status string. Guards: 404 if not found, 409 if already `IN_PROGRESS`, 400 if terminal (`COMPLETED`/`CANCELLED`). The endpoint does not scope to `userId` — any authenticated user can confirm (consistent with the `getRelocations` all-users default). `err()` helper extended with `409: 'Conflict'`.
+
+---
+
 ## 2026-04-13 — Edge Function refactor: decoupled handlers + removal of apps/api
 **Decision:** Refactored `supabase/functions/api/index.ts` into named handler functions and deleted the entire `apps/api` directory  
 **Rationale:** The original Edge Function was a single monolithic `Deno.serve` callback. Splitting it into `authenticate()`, `getRelocations()`, `createRelocation()`, `updateRelocation()`, `json()`, and `err()` makes each concern independently readable and testable. `apps/api` (Fastify, Prisma, Vercel infra, 25 files) was removed since the Supabase Edge Function is now the canonical backend — retaining it would cause confusion and maintenance drift. Root `package.json` was simplified: `dev:api`, `build:api`, `test:api` scripts removed; `prisma generate` dropped from `postinstall`. `CLAUDE.md` updated to reflect the new architecture.

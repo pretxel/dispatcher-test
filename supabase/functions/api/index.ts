@@ -26,6 +26,7 @@ function err(status: number, message: string): Response {
     400: 'Bad Request',
     401: 'Unauthorized',
     404: 'Not Found',
+    409: 'Conflict',
     422: 'Unprocessable Entity',
   }
   return json({ statusCode: status, error: titles[status] ?? 'Error', message }, status)
@@ -170,6 +171,33 @@ async function updateRelocation(
   return json(updated)
 }
 
+async function confirmRelocation(db: SupabaseClient, id: string): Promise<Response> {
+  const { data: existing, error: fetchError } = await db
+    .from('Relocation')
+    .select('id, status')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !existing)
+    return err(404, 'Relocation not found')
+
+  if (existing.status === 'IN_PROGRESS')
+    return err(409, 'Relocation is already in progress')
+
+  if (TERMINAL_STATUSES.includes(existing.status))
+    return err(400, 'Cannot confirm a completed or cancelled relocation')
+
+  const { data: updated, error: updateError } = await db
+    .from('Relocation')
+    .update({ status: 'IN_PROGRESS', updatedAt: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (updateError) return json({ error: updateError.message }, 500)
+  return json(updated)
+}
+
 // ── Router ─────────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -198,6 +226,11 @@ Deno.serve(async (req: Request) => {
   const putMatch = pathname.match(/\/v1\/relocations\/([^/]+)$/)
   if (req.method === 'PUT' && putMatch) {
     return updateRelocation(req, db, userId, decodeURIComponent(putMatch[1]))
+  }
+
+  const confirmMatch = pathname.match(/\/v1\/relocations\/([^/]+)\/confirm$/)
+  if (req.method === 'POST' && confirmMatch) {
+    return confirmRelocation(db, decodeURIComponent(confirmMatch[1]))
   }
 
   return err(404, 'Route not found')
